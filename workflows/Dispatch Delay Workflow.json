@@ -1,0 +1,698 @@
+{
+  "name": "Dispatch Delay Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b87c4ce2-5f8f-4d00-b70d-0d669cfa25fa",
+              "leftValue": "={{$json.severity}}",
+              "rightValue": "high",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5520,
+        944
+      ],
+      "id": "a309cc74-c321-4472-bee1-cda09d9610f1",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "81a49a90-23c5-4c9b-8b55-156c26543d1c",
+              "leftValue": "={{ $('Classify Severity').first().json.severity }}",
+              "rightValue": "critical",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4048,
+        944
+      ],
+      "id": "5e9e5b76-c32a-471a-bf03-67e1a388ec1c",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/store-incident",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"shipment_id\": \"{{ $('Filter Shipment').first().json.shipment_id }}\",\n  \"driver_name\": \"{{ $('Filter Shipment').first().json.driver_name }}\",\n  \"delay_reason\": \"{{ $('Classify Severity').first().json.delay_reason }}\",\n  \"severity\": \"{{ $('Classify Severity').first().json.severity }}\",\n  \"escalation_status\": \"{{ $('Prepare Escalation').first().json.escalation_status }}\",\n  \"operational_summary\": \"{{ $('Parse Operational Summary JSON').first().json.operational_summary }}\",\n  \"route\": \"{{ $('Filter Shipment').first().json.route || 'Mumbai Bypass Route' }}\",\n  \"origin\": \"{{ $('Filter Shipment').first().json.origin || 'Pune Hub' }}\",\n  \"destination\": \"{{ $('Filter Shipment').first().json.destination || 'Mumbai Port' }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        7440,
+        944
+      ],
+      "id": "b04b1336-c4cf-43ce-93ee-379e533be3fe",
+      "name": "Store Incident History"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $('Generate Operational Summary').first().json.text;\n\nconst cleaned = raw.replace(/```json|```/gi, '').trim();\n\nreturn [\n  {\n    json: JSON.parse(cleaned)\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7216,
+        944
+      ],
+      "id": "823c835e-5b27-4275-82d3-b5e634ab9496",
+      "name": "Parse Operational Summary JSON"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Return ONLY valid JSON.\n\n{\n  \"operational_summary\": \"Driver reported vehicle breakdown near Mumbai bypass. Severity classified as critical. Escalation triggered to Operations Control Center. Customer notified automatically.\"\n}\n\nShipment ID: {{$('Filter Shipment').first().json.shipment_id}}\n\nDriver Name: {{$('Filter Shipment').first().json.driver_name}}\n\nDelay Reason: {{$('Parse Delay Extraction JSON').first().json.delay_reason}}\n\nSeverity: {{$('Classify Severity').first().json.severity}}\n\nDispatcher Action: {{$('Parse Dispatch Analysis JSON').first().json.dispatcher_action}}\n\nCustomer Notification: {{$('Parse Dispatch Analysis JSON').first().json.customer_notification}}\n\nEscalation Status: {{$('Prepare Escalation').first().json.escalation_status}}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        6864,
+        944
+      ],
+      "id": "62bb4e4b-83bd-450a-a120-99719a404fa3",
+      "name": "Generate Operational Summary"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/log-event",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"event_id\": \"EV-NOTIFY-001\",\n  \"shipment_id\": \"{{$json.shipment_id}}\",\n  \"event_type\": \"Customer Notification Sent\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        6640,
+        944
+      ],
+      "id": "4e80d9e0-e195-440f-804b-c37c65bb6056",
+      "name": "Log Notification Event"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/generate-dispatch-voice",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"={{$json.customer_message}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        6416,
+        944
+      ],
+      "id": "1215e280-5d82-4f6f-a51c-629fa0104875",
+      "name": "Generate AI Voice Response"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      shipment_id: $('Prepare Dispatch Payload').first().json.shipment_id,\n      customer_message: $('Prepare Dispatch Payload').first().json.customer_notification,\n      severity: $('Prepare Dispatch Payload').first().json.severity,\n      notification_channel: \"SMS\",\n      status: \"Notification Prepared\"\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6192,
+        944
+      ],
+      "id": "8e659c29-83d7-49c8-abb1-c48a823c58fe",
+      "name": "Prepare Customer Notification"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/log-event",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"event_id\": \"EV-HIGH-001\",\n  \"shipment_id\": \"{{ $json.data[0].shipment_id }}\",\n  \"event_type\": \"High Severity Delay Escalation\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5968,
+        944
+      ],
+      "id": "45d96220-aebe-4081-8160-a23cc4535edc",
+      "name": "Log Escalation Event"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/update-shipment",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"shipment_id\": \"{{$json.shipment_id}}\",\n  \"status\": \"Escalated Delay\",\n  \"updated_eta\": \"2026-05-24T03:00:00\",\n  \"delay_reason\": \"{{$json.delay_reason}}\",\n  \"delay_minutes\": 180\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5744,
+        944
+      ],
+      "id": "bbc5afe5-ace6-406b-b45c-687dc05660e6",
+      "name": "Update Shipment Status"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      shipment_id: $('Filter Shipment').first().json.shipment_id,\n      driver_name: $('Filter Shipment').first().json.driver_name,\n      severity: $('Parse Delay Extraction JSON').first().json.severity,\n      delay_reason: $('Parse Delay Extraction JSON').first().json.delay_reason,\n      updated_eta: $('Parse Delay Extraction JSON').first().json.updated_eta,\n      delay_summary: $('Parse Dispatch Analysis JSON').first().json.delay_summary,\n      severity_assessment: $('Parse Dispatch Analysis JSON').first().json.severity_assessment,\n      dispatcher_action: $('Parse Dispatch Analysis JSON').first().json.dispatcher_action,\n      customer_notification: $('Parse Dispatch Analysis JSON').first().json.customer_notification\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5296,
+        944
+      ],
+      "id": "40deff97-4edf-43f3-bbff-35766aaa40cc",
+      "name": "Prepare Dispatch Payload"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Grab the raw text from the dispatch analysis LLM node\nconst raw = $('Generate Dispatch Analysis').first().json.text;\n\n// Completely strip away any markdown code blocks (```json or ```)\nconst cleaned = raw.replace(/```json|```/gi, '').trim();\n\n// Parse and return the clean data object\nreturn [{ json: JSON.parse(cleaned) }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5072,
+        944
+      ],
+      "id": "47efcb80-cdea-455f-b53b-147e87699a63",
+      "name": "Parse Dispatch Analysis JSON"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Return ONLY valid JSON.\n\n{\n  \"delay_summary\": \"Shipment delayed due to weather\",\n  \"severity_assessment\": \"{{$('Classify Severity').first().json.severity}}\",\n  \"dispatcher_action\": \"Notify customer and monitor route\",\n  \"customer_notification\": \"Your shipment is delayed\"\n}\n\nShipment ID: {{$('Filter Shipment').first().json.shipment_id}}\n\nDriver Name: {{$('Filter Shipment').first().json.driver_name}}\n\nDelay Reason: {{$('Classify Severity').first().json.delay_reason}}\n\nUpdated ETA: {{$('Classify Severity').first().json.updated_eta}}\n\nSeverity: {{$('Classify Severity').first().json.severity}}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        4720,
+        944
+      ],
+      "id": "da145b89-4db3-4fe3-be15-aef6b1548a19",
+      "name": "Generate Dispatch Analysis"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/log-event",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"event_id\": \"{{ $json.escalation_id }}\",\n  \"shipment_id\": \"{{ $json.shipment_id }}\",\n  \"event_type\": \"Critical Escalation Triggered\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4496,
+        944
+      ],
+      "id": "02f1b808-0567-40be-bf14-2551d6aad038",
+      "name": "Log Escalation Event1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      escalation_id: `ESC-${new Date().getFullYear()}-${Date.now()}`,\n      shipment_id: $('Filter Shipment').first().json.shipment_id,\n      driver_name: $('Filter Shipment').first().json.driver_name,\n      severity: $('Classify Severity').first().json.severity,\n      escalation_reason: $('Classify Severity').first().json.delay_reason,\n      escalation_status: \"OPEN\",\n      escalation_team: \"Operations Control Center\"\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4272,
+        944
+      ],
+      "id": "3d7aa04f-573c-4599-af5e-e244de4819f6",
+      "name": "Prepare Escalation"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Parse Delay Extraction JSON').first().json;\n\nconst etaText = data.updated_eta || \"\";\nconst reason = (data.delay_reason || \"\").toLowerCase();\n\nlet severity = \"medium\";\n\nconst etaNumber = parseInt(etaText);\n\nif (reason.includes(\"breakdown\") || reason.includes(\"unreachable\")) {\n    severity = \"critical\";\n}\nelse if (!isNaN(etaNumber)) {\n\n    if (etaNumber < 30) {\n        severity = \"low\";\n    }\n    else if (etaNumber >= 30 && etaNumber <= 120) {\n        severity = \"medium\";\n    }\n    else if (etaNumber > 120) {\n        severity = \"high\";\n    }\n}\n\nreturn [\n  {\n    json: {\n      ...data,\n      severity\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3824,
+        944
+      ],
+      "id": "5c2a11c7-e32a-46f3-b593-12a829437252",
+      "name": "Classify Severity"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $('Basic LLM Chain').first().json.text;\n\n// Clean out markdown code block wrappers (```json ... ``` or ``` ... ```)\nconst cleaned = raw.replace(/```json|```/gi, '').trim();\n\n// Parse and return the clean valid JSON object\nreturn [{ json: JSON.parse(cleaned) }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3600,
+        944
+      ],
+      "id": "76d7c900-12ae-4deb-9f7b-01d69e564978",
+      "name": "Parse Delay Extraction JSON"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI logistics delay analyzer.\n\nAnalyze the driver transcript and return ONLY valid JSON.\n\nDriver Transcript:\n{{$json.transcript}}\n\nReturn format:\n{\n  \"delay_reason\": \"\",\n  \"updated_eta\": \"\",\n  \"severity\": \"\",\n  \"additional_info\": \"\"\n}\n\nRules:\n- Identify the real delay reason from transcript\n- Estimate severity as low, medium, or high\n- Keep response concise\n- Return ONLY JSON",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        3248,
+        944
+      ],
+      "id": "10d73c73-08fd-4990-a6df-639a5f66b29f",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "mistral-small-latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+      "typeVersion": 1,
+      "position": [
+        3320,
+        1168
+      ],
+      "id": "5d0061e8-db09-444d-bd43-60d7f7459e40",
+      "name": "Mistral Cloud Chat Model",
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "EyPkpEFlikhH3YEI",
+          "name": "Mistral Cloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/transcribe-audio",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3024,
+        944
+      ],
+      "id": "a5d55b07-a0cd-4e81-82ee-c6c3c29eaac6",
+      "name": "Transcribe Driver Audio"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/generate-dispatch-voice",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"Dispatcher AI requesting update for shipment {{$json.shipment_id}}. Driver {{$json.driver_name}}, please provide your current shipment status, delay reason, and updated ETA.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2800,
+        944
+      ],
+      "id": "09286fb2-5389-4c03-9976-11b47ad421de",
+      "name": "Generate Initial Dispatcher Voice"
+    },
+    {
+      "parameters": {
+        "jsCode": "const shipmentId = $('Webhook').first().json.body.shipment_id;\n\nconst shipments = items.map(item => item.json);\n\nconst filtered = shipments.filter(\n  s => s.shipment_id === shipmentId\n);\n\nreturn filtered.map(s => ({ json: s }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2576,
+        944
+      ],
+      "id": "46b2873b-0d1d-4cd0-ace0-513f82ac6f6c",
+      "name": "Filter Shipment"
+    },
+    {
+      "parameters": {
+        "url": "http://127.0.0.1:8000/shipments",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2352,
+        944
+      ],
+      "id": "ead0b556-a997-49d6-a6b2-ba5491e3f39a",
+      "name": "Fetch Shipment Data"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "delay-trigger",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        2128,
+        944
+      ],
+      "id": "4bebdaf1-7cfb-4868-b7e7-79353327ddf3",
+      "name": "Webhook",
+      "webhookId": "692eed68-421c-4c88-bd46-74b791168520"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Update Shipment Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Prepare Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Operational Summary JSON": {
+      "main": [
+        [
+          {
+            "node": "Store Incident History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Operational Summary": {
+      "main": [
+        [
+          {
+            "node": "Parse Operational Summary JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Notification Event": {
+      "main": [
+        [
+          {
+            "node": "Generate Operational Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AI Voice Response": {
+      "main": [
+        [
+          {
+            "node": "Log Notification Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Customer Notification": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Voice Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Escalation Event": {
+      "main": [
+        [
+          {
+            "node": "Prepare Customer Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Shipment Status": {
+      "main": [
+        [
+          {
+            "node": "Log Escalation Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Dispatch Payload": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Dispatch Analysis JSON": {
+      "main": [
+        [
+          {
+            "node": "Prepare Dispatch Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Dispatch Analysis": {
+      "main": [
+        [
+          {
+            "node": "Parse Dispatch Analysis JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Escalation Event1": {
+      "main": [
+        [
+          {
+            "node": "Generate Dispatch Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Escalation": {
+      "main": [
+        [
+          {
+            "node": "Log Escalation Event1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Severity": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Delay Extraction JSON": {
+      "main": [
+        [
+          {
+            "node": "Classify Severity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Parse Delay Extraction JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral Cloud Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Generate Operational Summary",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Generate Dispatch Analysis",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Driver Audio": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Initial Dispatcher Voice": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Driver Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Shipment": {
+      "main": [
+        [
+          {
+            "node": "Generate Initial Dispatcher Voice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Shipment Data": {
+      "main": [
+        [
+          {
+            "node": "Filter Shipment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Shipment Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ff0f029a-5329-4b61-8f0f-92f980860993",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1e850cfc866cf11a0716876b17eea07a898b6244593c2a0cb032036a3f9bf154"
+  },
+  "id": "ZLgHRunPWC2bKCtx",
+  "tags": []
+}
