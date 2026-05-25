@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pandas
+python-multipart
+openai
+requests
+pydantic
+gtts
+pydub
+sqlite-utils
