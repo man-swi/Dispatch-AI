@@ -8,3 +8,5 @@ pydantic
 gtts
 pydub
 sqlite-utils
+supabase
+openai-whisper
