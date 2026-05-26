@@ -11,3 +11,4 @@ sqlite-utils
 supabase
 openai-whisper
 python-dotenv
+elevenlabs
