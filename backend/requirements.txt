@@ -10,3 +10,4 @@ pydub
 sqlite-utils
 supabase
 openai-whisper
+python-dotenv
