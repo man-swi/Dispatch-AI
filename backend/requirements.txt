@@ -12,3 +12,4 @@ supabase
 openai-whisper
 python-dotenv
 elevenlabs
+streamlit
