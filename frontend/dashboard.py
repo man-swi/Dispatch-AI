@@ -24,7 +24,7 @@ st.title("AI Logistics Dispatch Control Tower")
 try:
 
     shipment_response = requests.get(
-        "http://127.0.0.1:8000/shipments"
+        "https://dispatch-ai-production-c286.up.railway.app/shipments"
     )
 
     shipments = shipment_response.json()
@@ -90,7 +90,7 @@ st.header("AI Resolution Metrics")
 try:
 
     analytics_response = requests.get(
-        "http://127.0.0.1:8000/incident-analytics"
+        "https://dispatch-ai-production-c286.up.railway.app/incident-analytics"
     )
 
     analytics = analytics_response.json()
@@ -135,7 +135,7 @@ st.header("Live Incident Feed")
 try:
 
     incident_response = requests.get(
-        "http://127.0.0.1:8000/get-incident-history/SH1024"
+        "https://dispatch-ai-production-c286.up.railway.app/get-incident-history/SH1024"
     )
 
     incident_data = incident_response.json()
@@ -175,7 +175,7 @@ st.header("Route Risk Intelligence")
 try:
 
     route_response = requests.get(
-        "http://127.0.0.1:8000/route-risk-analysis"
+        "https://dispatch-ai-production-c286.up.railway.app/route-risk-analysis"
     )
 
     route_data = route_response.json()
@@ -222,7 +222,7 @@ st.header("Driver Risk Monitoring")
 try:
 
     driver_response = requests.get(
-        "http://127.0.0.1:8000/driver-risk-analysis"
+        "https://dispatch-ai-production-c286.up.railway.app/driver-risk-analysis"
     )
 
     driver_data = driver_response.json()
@@ -269,7 +269,7 @@ st.header("Operational Hotspots")
 try:
 
     hotspot_response = requests.get(
-        "http://127.0.0.1:8000/operational-hotspots"
+        "https://dispatch-ai-production-c286.up.railway.app/operational-hotspots"
     )
 
     hotspot_data = hotspot_response.json()
@@ -314,7 +314,7 @@ st.header("Repeat Driver Issue Detection")
 try:
 
     repeat_response = requests.get(
-        "http://127.0.0.1:8000/repeat-driver-issues"
+        "https://dispatch-ai-production-c286.up.railway.app/repeat-driver-issues"
     )
 
     repeat_data = repeat_response.json()
